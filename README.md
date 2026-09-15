@@ -20,6 +20,43 @@ Thought      -> final answer
 That self-correction isn't scripted — no code sequences the calls. The model chose to retry
 after reading a bad result. `trace_agent.py` prints all of it.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    User(["User<br/>'time in korea'"]) --> Entry["app.py · local_agent.py<br/>trace_agent.py"]
+    Entry --> Send
+
+    subgraph Loop["The ReAct loop — ask() in local_agent.py"]
+        direction TB
+        Send["1 · Send ENTIRE history<br/>+ tool schemas"]
+        Check{"2 · Reply has<br/>tool_calls?"}
+        Exec["3 · run_tool()<br/>parse JSON args,<br/>call the function"]
+        Send --> Check
+        Check -->|"yes · ACTION"| Exec
+        Exec -->|"OBSERVATION<br/>append role:tool"| Send
+    end
+
+    Send <-.->|"POST /v1/chat/completions"| LLM["llama-server<br/>gpt-oss-20b<br/><i>chooses the tool</i>"]
+    Check -->|"no · FINISH"| Answer(["Final answer"])
+    Exec --> Geo
+    Exec --> Time
+
+    subgraph Tools["time_tools.py — plain functions, no SDK"]
+        direction TB
+        Geo["geocode_location()"] -->|"HTTP GET"| OM["Open-Meteo"]
+        Time["get_time_at_coordinates()"] -->|"HTTP GET"| TA["TimeAPI.io"]
+    end
+
+    style LLM fill:#dbeafe,stroke:#2563eb,stroke-width:2px
+    style Answer fill:#dcfce7,stroke:#16a34a,stroke-width:2px
+    style User fill:#fef3c7,stroke:#d97706,stroke-width:2px
+```
+
+The model never touches an API. It emits a JSON tool call and stops; **your Python** parses
+it, runs the function, makes the HTTP request, and appends the result to history. Steps 1-3
+repeat until the model replies without a tool call.
+
 ## Two agents, one set of tools
 
 | File | What | Needs |
