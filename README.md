@@ -48,9 +48,14 @@ flowchart LR
         Time["get_time_at_coordinates()"] -->|"HTTP GET"| TA["TimeAPI.io"]
     end
 
-    style LLM fill:#dbeafe,stroke:#2563eb,stroke-width:2px
-    style Answer fill:#dcfce7,stroke:#16a34a,stroke-width:2px
-    style User fill:#fef3c7,stroke:#d97706,stroke-width:2px
+    %% Stroke-only accents: no fill or text colors are overridden, so the node
+    %% background and label follow GitHub's light/dark theme automatically.
+    style User stroke:#f59e0b,stroke-width:3px
+    style LLM stroke:#3b82f6,stroke-width:3px
+    style Answer stroke:#22c55e,stroke-width:3px
+    style Send stroke:#3b82f6,stroke-width:2px
+    style Check stroke:#3b82f6,stroke-width:2px
+    style Exec stroke:#3b82f6,stroke-width:2px
 ```
 
 The model never touches an API. It emits a JSON tool call and stops; **your Python** parses
