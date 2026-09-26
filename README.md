@@ -174,3 +174,7 @@ what the second one needs.
 - Delete a tool description and watch the calls get worse.
 - Add a third tool: write the function, then add it to `TOOL_FUNCTIONS` + `TOOL_SCHEMAS`
   (local) or `TOOLS` (Claude).
+
+## Roadmap
+
+Planned and proposed work, with the reasoning behind each item, is in [TODO.md](TODO.md).
