@@ -95,30 +95,44 @@ fills the 8192-token context after a few questions. **Reset** clears everything 
 system prompt. `trace_agent.py` prints the message count and token count for each round, so
 you can watch the list grow.
 
-## Two agents, one set of tools
+## What's in the repo
+
+**The local app** is the main project. The model runs on your machine in llama-server, and
+all three entry points share the loop in `local_agent.py`:
 
 | File | What | Needs |
 |---|---|---|
-| `app.py` | web chat UI (Flask) on the local model | a running server |
-| `local_agent.py` | terminal chat on the local model | a running server |
-| `agent.py` | terminal chat on Claude (`claude-opus-5`) | `ANTHROPIC_API_KEY` in `.env` |
+| `app.py` | web chat UI (Flask) | a running server |
+| `local_agent.py` | terminal chat, and home of the `ask()` loop | a running server |
 | `trace_agent.py` | one query, every step printed | a running server |
 
-They all import the same `time_tools.py`. Only the loop differs — which is the point: tools are
-plain functions, and the provider is swappable around them.
+**The Claude version** in [`claude_agent/`](claude_agent/) is optional and separate. It's the
+same agent on Claude (`claude-opus-5`) over the internet, kept as a comparison. Nothing in the
+local app imports it, and you don't need it (or an API key) to run anything above.
+
+Both versions import the same `time_tools.py`. Only the loop differs — which is the point:
+tools are plain functions, and the provider is swappable around them.
 
 ## Setup
 
+Local app (needs llama-server running):
+
 ```bash
-.venv/bin/python app.py                              # web UI -> http://localhost:5001
-.venv/bin/python local_agent.py                      # same thing, in the terminal
-cp .env.example .env && .venv/bin/python agent.py    # Claude version
+.venv/bin/python app.py              # web UI -> http://localhost:5001
+.venv/bin/python local_agent.py      # same thing, in the terminal
 ```
 
 Port 5001, not 5000 — macOS AirPlay Receiver occupies 5000.
 
 Rebuild the venv with `python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt`.
 Point `local_agent.py` somewhere else with `LOCAL_BASE_URL` / `LOCAL_MODEL` in `.env`.
+
+Claude version (optional; needs `ANTHROPIC_API_KEY` in `.env`, not llama-server). Run it from
+the repo root:
+
+```bash
+cp .env.example .env && .venv/bin/python -m claude_agent.agent
+```
 
 ## Seeing what actually happens
 
@@ -144,7 +158,7 @@ API breakage from agent bugs.
 
 ## How the two loops differ
 
-**`agent.py`** wraps each function in `@beta_tool`, which generates the JSON schema from the
+**`claude_agent/agent.py`** wraps each function in `@beta_tool`, which generates the JSON schema from the
 signature, type hints, and docstring. `client.beta.messages.tool_runner(...)` then runs the
 whole loop — executing tools and feeding results back — until Claude writes a final answer.
 
@@ -173,7 +187,7 @@ what the second one needs.
 - Ask about somewhere ambiguous ("Springfield") and see which one it picks.
 - Delete a tool description and watch the calls get worse.
 - Add a third tool: write the function, then add it to `TOOL_FUNCTIONS` + `TOOL_SCHEMAS`
-  (local) or `TOOLS` (Claude).
+  (local) or `TOOLS` in `claude_agent/agent.py` (Claude).
 
 ## Roadmap
 

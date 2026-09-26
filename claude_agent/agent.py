@@ -2,6 +2,10 @@
 
 The model decides which tools to call and in what order. Typically it chains them:
 geocode_location -> get_time_at_coordinates -> a written answer.
+
+Run from the repo root, as a module, so it can import the shared time_tools.py:
+
+    .venv/bin/python -m claude_agent.agent
 """
 
 import os
