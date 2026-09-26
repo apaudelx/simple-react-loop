@@ -62,6 +62,39 @@ The model never touches an API. It emits a JSON tool call and stops; **your Pyth
 it, runs the function, makes the HTTP request, and appends the result to history. Steps 1-3
 repeat until the model replies without a tool call.
 
+## The model has no memory
+
+Each request to the model starts from nothing: it doesn't remember the last call. So every
+round sends the **entire** `messages` list, and the list grows as tool calls and results are
+appended to it. For "what time is it in Paris?":
+
+```python
+# Round 1: 2 messages
+[{"role": "system",    "content": "You are a time assistant..."},
+ {"role": "user",      "content": "what time is it in Paris?"}]
+# -> model replies with a tool call, not an answer
+
+# Round 2: 4 messages (the same 2, plus the call and its result)
+ {"role": "assistant", "tool_calls": [{"function": {"name": "geocode_location",
+                        "arguments": "{\"location_name\": \"Paris\"}"}, ...}]},
+ {"role": "tool",      "content": "Paris, Île-de-France, France is at latitude 48.85, longitude 2.35 ..."}
+# -> model asks for get_time_at_coordinates(48.85, 2.35)
+
+# Round 3: 6 messages (the same 4, plus the second call and its result)
+ {"role": "assistant", "tool_calls": [{"function": {"name": "get_time_at_coordinates", ...}}]},
+ {"role": "tool",      "content": "Saturday 09/26/2026 at 14:05 (Europe/Paris, DST active: True)."}
+# -> model replies in plain text; that reply is appended as message 7
+```
+
+In round 2 the model can use the coordinates only because the tool result is in the list it
+was sent. The list is its only memory.
+
+The web UI keeps one list for as long as the server runs, so a follow-up like "and Tokyo?"
+sends the whole Paris exchange too. That's what makes follow-ups work, and it's also what
+fills the 8192-token context after a few questions. **Reset** clears everything but the
+system prompt. `trace_agent.py` prints the message count and token count for each round, so
+you can watch the list grow.
+
 ## Two agents, one set of tools
 
 | File | What | Needs |
